@@ -1,12 +1,35 @@
 import sys
 import socket
 import os
+import hashlib
 
 # Get command line arguments and assign to global variables
 PORT = int(sys.argv[1])
 PASSWORD = sys.argv[2]
 FILE_PATH = sys.argv[3]
 
+############################## START TERMINATE ################################
+
+def terminate(sock, addr):
+    fileInfo = os.stat(FILE_PATH)
+    size = fileInfo.st_size
+
+    fd = os.open(FILE_PATH, os.O_RDONLY)
+    data = os.read(fd, size)
+    os.close(fd)
+
+    m = hashlib.sha1(data)
+    print(m.hexdigest())
+    print(m.digest_size)
+    packet = bytearray()
+    packet.extend(bytes([6,0]))
+    pyldLength = m.digest_size
+    packet.extend(pyldLength.to_bytes(4, byteorder='little'))
+    packet.extend(m.digest())
+    sock.sendto(packet, addr)
+
+
+############################### END TERMINATE #################################
 ############################## START SEND FILE ################################
 
 def sendFile(sock, addr):
@@ -25,10 +48,10 @@ def sendFile(sock, addr):
         response.extend(data)
         sock.sendto(response, addr)
         i += pyldLength
+    os.close(fd)
 
 
 ############################## END SEND FILE ################################
-
 ############################ START CHECK PASSWORD #############################
 
 def checkPassword(sock, addr, data):
@@ -38,9 +61,12 @@ def checkPassword(sock, addr, data):
     if password == PASSWORD:
         print("PASSWORD ACCEPTED")
         sendFile(sock, addr)
+        terminate(sock, addr)
+        return True
+    return False
+
 
 ############################# END CHECK PASSWORD ##############################
-
 ########################### START REQUEST PASSWORD ############################
 
 def requestPassword(sock, addr):
@@ -48,10 +74,10 @@ def requestPassword(sock, addr):
     sock.sendto(passRequest, addr)
     
 ############################ END REQUEST PASSWORD #############################
-
 ########################## START CONNECT AND LISTEN ###########################
 
 def connectAndListen(sock):
+    status = ""
     passRespCount = 0
     while True:
         data, addr = sock.recvfrom(1010)
@@ -61,18 +87,21 @@ def connectAndListen(sock):
         if header == 1: # JOIN_REQ
             requestPassword(sock, addr)
         elif header == 3: # PASS_RESP
-            checkPassword(sock, addr, data[2:])
+            if checkPassword(sock, addr, data[2:]) == True:
+                status = "OK"
+                break
             passRespCount += 1
             if passRespCount < 3:
                 requestPassword(sock, addr)
             else:
                 reject = bytearray([7,0,0,0,0,0])
                 sock.sendto(reject, addr)
-                print("ABORT")
-                exit(1)
+                status = "ABORT"
+                break
+    return status
+                
 
 ########################### END CONNECT AND LISTEN ############################
-
 ################################# START MAIN ##################################
 
 def main():
@@ -80,6 +109,7 @@ def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(('', PORT))
 
-    connectAndListen(sock)
+    print(connectAndListen(sock))
+    sock.close()
 
 main()
