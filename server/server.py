@@ -1,12 +1,18 @@
+#!/usr/bin/env python3
 import sys
 import socket
 import os
 import hashlib
 
 # Get command line arguments and assign to global variables
-PORT = int(sys.argv[1])
-PASSWORD = sys.argv[2]
-FILE_PATH = sys.argv[3]
+USAGE = "Usage: ./server.py <port> <password> <input file>"
+try:
+    PORT = int(sys.argv[1])
+    PASSWORD = sys.argv[2]
+    FILE_PATH = sys.argv[3]
+except (ValueError, IndexError):
+    print(USAGE)
+    exit(1)
 
 ############################## START TERMINATE ################################
 
