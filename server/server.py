@@ -25,8 +25,6 @@ def terminate(sock, addr):
     os.close(fd)
 
     m = hashlib.sha1(data)
-    print(m.hexdigest())
-    print(m.digest_size)
     packet = bytearray()
     packet.extend(bytes([6,0]))
     pyldLength = m.digest_size
@@ -43,7 +41,6 @@ def sendFile(sock, addr):
     size = fileInfo.st_size
 
     fd = os.open(FILE_PATH, os.O_RDONLY)
-    print(size)
     i = 0
     while i < size:
         data = os.read(fd, 1000)
@@ -63,9 +60,7 @@ def sendFile(sock, addr):
 def checkPassword(sock, addr, data):
     pyldLength = int.from_bytes(data[0:4], byteorder='little')
     password = str(data[4:pyldLength+4], 'utf-8')
-    print(password, PASSWORD)
     if password == PASSWORD:
-        print("PASSWORD ACCEPTED")
         sendFile(sock, addr)
         terminate(sock, addr)
         return True
@@ -87,7 +82,6 @@ def connectAndListen(sock):
     passRespCount = 0
     while True:
         data, addr = sock.recvfrom(1010)
-        print(data)
 
         header = int.from_bytes(data[0:2], byteorder='little')
         if header == 1: # JOIN_REQ

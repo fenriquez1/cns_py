@@ -70,7 +70,6 @@ def connectToServer(sock):
 
     while True:
         buff = sock.recv(1010)
-        print(buff)
         header = int.from_bytes(buff[0:2], byteorder='little')
         if header == 2: # PASS_REQ
             sendPassword(sock, PASSWORDS[passReqCount])
